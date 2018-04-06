@@ -10,6 +10,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static com.yachtmafia.util.KafkaMessageGenerator.getDepositMessages;
 import static org.junit.Assert.assertEquals;
@@ -44,7 +45,7 @@ public class DBWrapperImplTest {
         SwapMessage message = new SwapMessage(recordString);
         String topic = "DEPOSIT";
         assert dbWrapper.addTransaction(id, message, topic);
-        boolean success = dbWrapper.addPortfolioBalance(message, purchasedAmount);
+        boolean success = dbWrapper.addTransaction(message, purchasedAmount);
         assert dbWrapper.removeTransaction(id);
         assert success;
     }
@@ -64,8 +65,8 @@ public class DBWrapperImplTest {
         String publicAddress = "publicUnitTest";
         String privateAddress = "privateUnitTest";
         assert dbWrapper.addNewWallet(user, coin, publicAddress, privateAddress);
-        String privateKey = dbWrapper.getPrivateKey(user, coin);
-        assertEquals(privateAddress, privateKey);
+        List<String> privateKey = dbWrapper.getPrivateKey(user, coin);
+        assertEquals(privateAddress, privateKey.get(0));
         assert dbWrapper.removeWallet(user, coin, publicAddress);
     }
 
@@ -76,8 +77,8 @@ public class DBWrapperImplTest {
         String publicAddressExpected = "unitTestPublic";
         boolean success = dbWrapper.addNewWallet(user, coin, publicAddressExpected, "unitTestPrivate");
         assert success;
-        String publicAddress = dbWrapper.getPublicAddress(user, coin);
-        assertEquals(publicAddressExpected, publicAddress);
+        List<String> publicAddress = dbWrapper.getPublicAddress(user, coin);
+        assertEquals(publicAddressExpected, publicAddress.get(0));
         success = dbWrapper.removeWallet(user, coin, publicAddressExpected);
         assert success;
     }

@@ -15,11 +15,12 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.kits.WalletAppKit;
-import org.bitcoinj.params.MainNetParams;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
+import java.util.Scanner;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -47,6 +48,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private Config config;
     private WalletWrapper walletWrapper;
     private NetworkParameters network;
+    private Thread inputThread;
 
     public static void main(String[] args) {
         LoggerContext context = (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
@@ -55,11 +57,12 @@ public class Main implements Thread.UncaughtExceptionHandler{
 // this will force a reconfiguration
         context.setConfigLocation(file.toURI());
 
-        Main Main = new Main();
-        Main.run();
+        Main main = new Main();
+        main.run();
     }
 
     private void run(){
+        setupUserInput();
         setupConfig();
         setupNetwork();
         setupDBWrapper();
@@ -73,6 +76,27 @@ public class Main implements Thread.UncaughtExceptionHandler{
         waitForThreadsToFinish();
     }
 
+    private void setupUserInput() {
+        inputThread = new Thread(() -> {
+
+            Scanner scan = new Scanner(System.in);
+            String input;
+            while (running) {
+                logger.info("Type Q to exit: ");
+                input = scan.nextLine();
+                switch (input){
+                    case "q":
+                    case "Q":
+                        logger.info("Shutting down from user input!");
+                        running = false;
+                        break;
+                    default:
+                        logger.info("Unknown input: " + input);
+                }
+            }
+        });
+    }
+
     private void setupNetwork() {
         network = NetworkParameters.fromID(config.NETWORK);
     }
@@ -80,7 +104,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private void setupWalletWrapper() {
         File file = new File("wallet");
         WalletAppKit walletAppKit = new WalletAppKit(network,
-                file, "forwarding-service-main");
+                file, "forwarding-service-main" + network.toString());
 
         Web3j web3j = Web3j.build(new HttpService());  // defaults to http://localhost:8545/
         walletWrapper = new WalletWrapper(walletAppKit, web3j);
@@ -111,11 +135,20 @@ public class Main implements Thread.UncaughtExceptionHandler{
     }
 
     private void startAllThreads() {
+        logger.info("Starting all threads...");
+        inputThread.start();
+        walletWrapper.getBitcoinWalletAppKit().setAutoSave(true);
         walletWrapper.startAsync();
+        walletWrapper.getBitcoinWalletAppKit().awaitRunning();
+        List<ECKey> importedKeys = walletWrapper.getBitcoinWalletAppKit().wallet().getImportedKeys();
+        for (ECKey key : importedKeys) {
+            walletWrapper.getBitcoinWalletAppKit().wallet().removeKey(key);
+        }
 //        walletWrapper.getBitcoinWalletAppKit().peerGroup().startAsync();
         for (Thread t : threads){
             t.start();
         }
+        logger.info("All started!");
     }
 
 //    private void startProducer() {
@@ -144,7 +177,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
 //        producer.subscribe("my-topic");
 //    }
 
-    private void waitForThreadsToFinish() {
+    private void waitForThreadsToFinish()  {
         try {
             while (running && !Thread.interrupted()) {
                 for(Thread t : threads){
@@ -160,9 +193,28 @@ public class Main implements Thread.UncaughtExceptionHandler{
             logger.error("caught: ", ex);
             Thread.currentThread().interrupt();
         }
+        walletWrapper.getBitcoinWalletAppKit().wallet().shutdownAutosaveAndWait();
         logger.info("Shutting down...");
+
+
+        inputThread.interrupt();
+        try {
+            inputThread.join(100);
+        } catch (InterruptedException e) {
+            logger.warn("Caught: ", e);
+        }
+
         for(Thread t : threads){
             t.interrupt();
+        }
+
+        for (Thread thread : threads) {
+            try {
+                thread.join(100);
+            } catch (InterruptedException e) {
+                logger.warn("Caught: ", e);
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -216,5 +268,6 @@ public class Main implements Thread.UncaughtExceptionHandler{
     @Override
     public void uncaughtException(Thread t, Throwable e) {
         logger.fatal("Caught: " + t.toString(), e);
+        running = false;
     }
 }

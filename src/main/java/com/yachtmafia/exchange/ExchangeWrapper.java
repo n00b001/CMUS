@@ -11,7 +11,7 @@ import java.util.Set;
 
 public class ExchangeWrapper implements Exchange {
     private final Config config;
-    Set<Exchange> exchanges = new HashSet<>();
+    private Set<Exchange> exchanges = new HashSet<>();
 //    private final Logger LOG = Logger.getLogger(getClass().getSimpleName());
 
 

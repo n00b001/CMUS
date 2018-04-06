@@ -1,10 +1,15 @@
 package com.yachtmafia.util;
 
+import com.yachtmafia.config.Config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import javax.mail.*;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Properties;
 
 
 /**
@@ -54,5 +59,46 @@ private static final Logger logger = LogManager.getLogger(Util.class);
                 logger.error("UNKNOWN CURRENCY: " + currency);
                 throw new RuntimeException("UNKNOWN CURRENCY: " + currency);
         }
+    }
+
+    public static boolean sendEmail(String message, String subject,
+                                    Config config, String[] recipients) {
+
+        Properties props = new Properties();
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.host", "smtp.gmail.com");
+        props.put("mail.smtp.port", "587");
+
+        Session session = Session.getInstance(props,
+                new javax.mail.Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(
+                                config.ADMIN_EMAIL,
+                                config.EMAIL_PASSWORD);
+                    }
+                });
+
+        try {
+
+            for (String recipient : recipients) {
+                Message mailMessage = new MimeMessage(session);
+                mailMessage.setFrom(new InternetAddress(config.ADMIN_EMAIL));
+                mailMessage.setRecipients(Message.RecipientType.TO,
+                        InternetAddress.parse(recipient));
+                mailMessage.setSubject(subject);
+                mailMessage.setText(message);
+
+                Transport.send(mailMessage);
+
+                logger.info("Sent email to: " + recipient + "!");
+            }
+            return true;
+
+        } catch (MessagingException e) {
+            logger.error("Email error: ", e);
+        }
+        return false;
     }
 }

@@ -1,8 +1,11 @@
 package com.yachtmafia.walletwrapper;
 
 import com.yachtmafia.WalletAppKitMock;
+import org.bitcoinj.core.ECKey;
 import org.bitcoinj.core.NetworkParameters;
 import org.bitcoinj.store.BlockStoreException;
+
+import java.util.List;
 
 /**
  * Created by xfant on 2018-01-08.
@@ -21,7 +24,7 @@ public class WalletWrapperMock extends WalletWrapper {
     }
 
     @Override
-    public boolean sendBitcoinTransaction(String privateKey, String publicAddress, String depositAddress, String amountOfCoin, NetworkParameters network) {
+    public boolean sendBitcoinTransaction(List<ECKey> keys, String depositAddress, String amountOfCoin, NetworkParameters network) {
         return true;
     }
 }

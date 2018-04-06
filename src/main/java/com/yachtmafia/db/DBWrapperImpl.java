@@ -6,10 +6,14 @@ import com.yachtmafia.messages.SwapMessage;
 import com.yachtmafia.util.StatusLookup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bitcoinj.core.ECKey;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import static com.yachtmafia.util.Util.PRECISION;
 
@@ -32,39 +36,47 @@ public class DBWrapperImpl implements DBWrapper {
 
     @Override
     public boolean addNewWallet(String user, String coin, String publicAddress, String privateAddress) {
-        String userId = getUserId(user);
+        List<String> userIdSet = getUserId(user);
+        if (userIdSet.isEmpty()){
+            logger.error("UserId not found! ");
+            return false;
+        }else if(userIdSet.size() > 1){
+            logger.error("Multiple users found! ");
+            return false;
+        }
+        String userId = userIdSet.get(0);
         if (userId == null) {
             logger.error("User not found: " + user);
             return false;
         }
 
-        String query =
-                "SELECT " + config.ID + " FROM " +
-                        config.WALLETS_TABLE + " WHERE " + config.CURRENCY_ID
-                        + " = '" + coin + "' AND " + config.USER_ID + " = " + userId
-                        + " AND " + config.PUBLIC_ADDRESS + " is not null";
-        String userWallet = getSingleQueryString(query);
-
-        if (userWallet != null) {
-            query =
-                    "SELECT " + config.ID + " FROM " +
-                            config.PRIVATE_TABLE + " WHERE " + config.WALLET_ID
-                            + " = " + userWallet + " AND " + config.PRIVATE_KEY + " is not null";
-            String userPrivatekey = getSingleQueryString(query);
-            if (userPrivatekey != null) {
-                logger.warn("User already has wallet! " + user);
-                return true;
-            } else {
-                /**
-                 * create private key
-                 */
-                return insertPrivateKey(privateAddress, userWallet);
-            }
-        } else {
+//        String query =
+//                "SELECT " + config.ID + " FROM " +
+//                        config.WALLETS_TABLE + " WHERE " + config.CURRENCY_ID
+//                        + " = '" + coin + "' AND " + config.USER_ID + " = " + userId
+//                        + " AND " + config.PUBLIC_ADDRESS + " is not null";
+//        String userWallet = getSingleQueryString(query);
+//
+//        if (userWallet != null) {
+//            query =
+//                    "SELECT " + config.ID + " FROM " +
+//                            config.PRIVATE_TABLE + " WHERE " + config.WALLET_ID
+//                            + " = " + userWallet + " AND " + config.PRIVATE_KEY + " is not null";
+//            String userPrivatekey = getSingleQueryString(query);
+//            if (userPrivatekey != null) {
+//                logger.warn("User already has wallet! " + user);
+//                return true;
+//            } else {
+//                /**
+//                 * create private key
+//                 */
+//                return insertPrivateKey(privateAddress, userWallet);
+//            }
+//        } else {
             /**
              * create wallet and private key
              */
-            query =
+            String query =
                     "INSERT INTO " +
                             config.WALLETS_TABLE +
                             "    (" + config.CURRENCY_ID + ", " + config.USER_ID + ", " + config.PUBLIC_ADDRESS + ") " +
@@ -93,7 +105,7 @@ public class DBWrapperImpl implements DBWrapper {
             }
 
             return insertPrivateKey(privateAddress, walletId);
-        }
+//        }
     }
 
     private boolean insertPrivateKey(String privateAddress, String userWallet) {
@@ -107,7 +119,7 @@ public class DBWrapperImpl implements DBWrapper {
     }
 
     @Override
-    public boolean addPortfolioBalance(SwapMessage message, String toAmount) {
+    public boolean addTransaction(SwapMessage message, String toAmount) {
         String fromAmount = message.getAmountOfCoin();
         if (null == fromAmount || "".equals(fromAmount) || "0".equals(fromAmount)) {
             throw new RuntimeException("Transaction from amount is invalid: " + fromAmount);
@@ -116,7 +128,15 @@ public class DBWrapperImpl implements DBWrapper {
             throw new RuntimeException("Transaction to amount is invalid: " + toAmount);
         }
 
-        String userId = getUserId(message.getUsername());
+        List<String> userIdList = getUserId(message.getUsername());
+        if (userIdList.isEmpty()){
+            logger.error("UserId not found! ");
+            return false;
+        }else if(userIdList.size() > 1){
+            logger.error("Multiple users found! ");
+            return false;
+        }
+        String userId = userIdList.get(0);
         if (userId == null) {
             throw new RuntimeException("userId not found: " + message.getUsername());
         }
@@ -139,7 +159,18 @@ public class DBWrapperImpl implements DBWrapper {
 
         String query = "SELECT " + config.ID + " FROM " + config.TRANSACTION_TABLE + " WHERE "
                 + config.ID + " = '" + message.getID() + "'";
-        String id = getSingleQueryString(query);
+//        String id = getSingleQueryString(query);
+
+        List<String> idList = getSingleQueryString(query);
+        if (idList.isEmpty()){
+            logger.error("UserId not found! ");
+            return false;
+        }else if(idList.size() > 1){
+            logger.error("Multiple users found! ");
+            return false;
+        }
+        String id = idList.get(0);
+
         if (id == null) {
             logger.error("No transactions with ID: " + message.getID());
             return false;
@@ -194,7 +225,16 @@ public class DBWrapperImpl implements DBWrapper {
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C ON C." + config.ID + " = P." + config.TO_CURRENCY_ID + " " +
                         " WHERE " +
                         "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
-        String toFunds = getSingleQueryString(query);
+//        String toFunds = getSingleQueryString(query);
+        List<String> toFundsList = getSingleQueryString(query);
+        if (toFundsList.isEmpty()){
+            logger.error("UserId not found! ");
+            return null;
+        }else if(toFundsList.size() > 1){
+            logger.error("Multiple users found! ");
+            return null;
+        }
+        String toFunds = toFundsList.get(0);
 
         if (toFunds == null) {
             logger.warn("No funds found for user: " + user + " and coin: " + coin);
@@ -210,7 +250,16 @@ public class DBWrapperImpl implements DBWrapper {
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C ON C." + config.ID + " = P." + config.FROM_CURRENCY_ID + " " +
                         " WHERE " +
                         "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
-        String fromFunds = getSingleQueryString(query);
+//        String fromFunds = getSingleQueryString(query);
+        toFundsList = getSingleQueryString(query);
+        if (toFundsList.isEmpty()){
+            logger.error("UserId not found! ");
+            return null;
+        }else if(toFundsList.size() > 1){
+            logger.error("Multiple users found! ");
+            return null;
+        }
+        String fromFunds = toFundsList.get(0);
 
         if (fromFunds == null) {
             logger.warn("No from funds found for user: " + user + " and coin: " + coin);
@@ -224,7 +273,7 @@ public class DBWrapperImpl implements DBWrapper {
     }
 
     @Override
-    public String getPrivateKey(String user, String coin) {
+    public List<String> getPrivateKey(String user, String coin) {
         String query =
                 "SELECT " +
                         "   " + config.PRIVATE_KEY + " " +
@@ -240,7 +289,15 @@ public class DBWrapperImpl implements DBWrapper {
 
     @Override
     public boolean removeWallet(String user, String coin, String address) {
-        String userId = getUserId(user);
+        List<String> userIdList = getUserId(user);
+        if (userIdList.isEmpty()){
+            logger.error("No Users found!");
+            return false;
+        }else if(userIdList.size() > 1){
+            logger.error("Multiple Users found!");
+            return false;
+        }
+        String userId = userIdList.get(0);
         String query = "DELETE from " + config.WALLETS_TABLE + " WHERE " + config.USER_ID + " = " + userId
                 + " AND " + config.CURRENCY_ID + " = '" + coin + "' AND " + config.PUBLIC_ADDRESS
                 + " = '" + address + "'";
@@ -250,7 +307,16 @@ public class DBWrapperImpl implements DBWrapper {
 
     @Override
     public boolean addTransaction(String id, SwapMessage swapMessage, String topic) throws JsonProcessingException {
-        String userId = getUserId(swapMessage.getUsername());
+        List<String> userIdSet = getUserId(swapMessage.getUsername());
+        if (userIdSet.isEmpty()){
+            logger.error("UserId not found! ");
+            return false;
+        }else if(userIdSet.size() > 1){
+            logger.error("Multiple users found! ");
+            return false;
+        }
+        String userId = userIdSet.get(0);
+
         String query =
                 "INSERT INTO " +
                         config.TRANSACTION_TABLE +
@@ -285,14 +351,25 @@ public class DBWrapperImpl implements DBWrapper {
         return modifyQuery(query);
     }
 
-    private String getUserId(String user) {
+    private List<String> getUserId(String user) {
         String query = "SELECT " + config.ID + " FROM " + config.USERS_TABLE + " WHERE "
                 + config.EMAIL + " = '" + user + "'";
         return getSingleQueryString(query);
     }
 
     @Override
-    public String getPublicAddress(String user, String coin) {
+    public List<ECKey> getKeys(String user, String coin) {
+        List<ECKey> list = new ArrayList<>();
+        List<String> privateKey = getPrivateKey(user, coin);
+        for (String s : privateKey) {
+            ECKey ecKey = ECKey.fromPrivate(s.getBytes());
+            list.add(ecKey);
+        }
+        return list;
+    }
+
+    @Override
+    public List<String> getPublicAddress(String user, String coin) {
         String query =
                 "SELECT " +
                         "   " + config.PUBLIC_ADDRESS + " " +
@@ -306,25 +383,43 @@ public class DBWrapperImpl implements DBWrapper {
         return getSingleQueryString(query);
     }
 
-    private String getSingleQueryString(String query) {
+    private List<String> getSingleQueryString(String query) {
         try (Connection con = DriverManager.getConnection(
                 config.connectionString,
                 config.username, config.password);
              Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(query)
         ) {
-            if (rs.next()) {
-                String string = rs.getString(1);
-                if (rs.next()) {
-                    logger.error("More than one element found from query: " + query);
-                }
-                return string;
-            } else {
-                return null;
+            List<String> hashSet = new ArrayList<>();
+            while (rs.next()) {
+                hashSet.add(rs.getString(1));
             }
+            return hashSet;
         } catch (SQLException e) {
             logger.error("Caught: ", e);
         }
-        return null;
+        return Collections.emptyList();
+    }
+
+    private List<List<String>> getMultiQueryString(String query, int columns) {
+        try (Connection con = DriverManager.getConnection(
+                config.connectionString,
+                config.username, config.password);
+             Statement stmt = con.createStatement();
+             ResultSet rs = stmt.executeQuery(query)
+        ) {
+            List<List<String>> hashSet = new ArrayList<>();
+            while (rs.next()) {
+                List<String> row = new ArrayList<>();
+                for (int i = 1; i <= columns; i++) {
+                    row.add(rs.getString(i));
+                }
+                hashSet.add(row);
+            }
+            return hashSet;
+        } catch (SQLException e) {
+            logger.error("Caught: ", e);
+        }
+        return Collections.emptyList();
     }
 }

@@ -40,40 +40,58 @@ public class WalletWrapper {
         return ethereumWallet;
     }
 
-    public boolean sendBitcoinTransaction(String privateKey, String publicAddress,
+    public boolean sendBitcoinTransaction(List<ECKey> keys,
                                           String depositAddress, String amountOfCoin,
                                           NetworkParameters network) {
+
+        Wallet wallet = bitcoinWalletAppKit.wallet();
         try {
             /**
              * todo: test
              */
-            ECKey ecKey = ECKey.fromPrivate(privateKey.getBytes());
-            List<ECKey> ecKeyList = new ArrayList<>();
-            ecKeyList.add(ecKey);
-            Wallet wallet = Wallet.fromKeys(network, ecKeyList);
+            for (ECKey key : keys) {
+                boolean success = wallet.importKey(key);
+                if (!success){
+                    logger.error("Failed to import key!");
+                    return false;
+                }
+            }
+
+//            ECKey ecKey = ECKey.fromPrivate(privateKey.getBytes());
+//            List<ECKey> ecKeyList = new ArrayList<>();
+//            ecKeyList.add(ecKey);
+//            Wallet wallet = Wallet.fromKeys(network, ecKeyList);
 
             Address address = Address.fromBase58(network, depositAddress);
+
+//            wallet.
 
             Long satoshis = Long.valueOf(amountOfCoin);
             final Coin value = Coin.valueOf(satoshis);
             // Make sure this code is run in a single thread at once.
             SendRequest request = SendRequest.to(address, value);
-// The SendRequest object can be customized at this point to modify how the transaction will be created.
+            // The SendRequest object can be customized at this point to modify how the transaction will be created.
             wallet.completeTx(request);
-// Ensure these funds won't be spent again.
+            // Ensure these funds won't be spent again.
             wallet.commitTx(request.tx);
-// A proposed transaction is now sitting in request.tx - send it in the background.
+            // A proposed transaction is now sitting in request.tx - send it in the background.
             ListenableFuture<Transaction> future = bitcoinWalletAppKit.peerGroup()
                     .broadcastTransaction(request.tx).future();
 
-// The future will complete when we've seen the transaction ripple across the network to a sufficient degree.
-// Here, we just wait for it to finish, but we can also attach a listener that'll get run on a background
-// thread when finished. Or we could just assume the network accepts the transaction and carry on.
+            // The future will complete when we've seen the transaction ripple across the network to a sufficient degree.
+            // Here, we just wait for it to finish, but we can also attach a listener that'll get run on a background
+            // thread when finished. Or we could just assume the network accepts the transaction and carry on.
             Transaction transaction = future.get();
             logger.info("Transactions " + transaction);
+            for (ECKey key : keys) {
+                wallet.removeKey(key);
+            }
             return true;
         } catch (Exception e) {
             logger.error("Caught: ", e);
+            for (ECKey key : keys) {
+                wallet.removeKey(key);
+            }
             return false;
         }
     }

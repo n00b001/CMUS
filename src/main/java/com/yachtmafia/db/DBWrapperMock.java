@@ -4,8 +4,12 @@ import com.yachtmafia.cryptoKeyPairs.BTC;
 import com.yachtmafia.messages.SwapMessage;
 import com.yachtmafia.util.StatusLookup;
 import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.ECKey;
 
 import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+import java.util.ArrayList;
 
 public class DBWrapperMock implements DBWrapper {
     private BTC btc;
@@ -15,11 +19,17 @@ public class DBWrapperMock implements DBWrapper {
     }
 
     @Override
-    public String getPublicAddress(String user, String coin) {
+    public List<ECKey> getKeys(String user, String coin) {
+        return Collections.emptyList();
+    }
+
+    @Override
+    public List<String> getPublicAddress(String user, String coin) {
+        List<String> list = new ArrayList<>();
         if ("BTC".equals(coin)){
-            return btc.getPublicAddress();
+            list.add(btc.getPublicAddress());
         }
-        return null;
+        return list;
     }
 
     @Override
@@ -28,7 +38,7 @@ public class DBWrapperMock implements DBWrapper {
     }
 
     @Override
-    public boolean addPortfolioBalance(SwapMessage message, String purchasedAmount) {
+    public boolean addTransaction(SwapMessage message, String purchasedAmount) {
         return true;
     }
 
@@ -38,11 +48,12 @@ public class DBWrapperMock implements DBWrapper {
     }
 
     @Override
-    public String getPrivateKey(String user, String coin) {
+    public List<String> getPrivateKey(String user, String coin) {
+        List list = new ArrayList<String>();
         if ("BTC".equals(coin)){
-            return btc.getPrivateKey();
+            list.add(btc.getPrivateKey());
         }
-        return null;
+        return list;
     }
 
     @Override

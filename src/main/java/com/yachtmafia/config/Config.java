@@ -24,7 +24,8 @@ public class Config {
     public String password = "46492c38";
 //    public String password = "Watersports2017";
     public int AMOUNT_OF_HANDLER_THREADS = 30;
-    public String NETWORK = "org.bitcoin.production";
+//    public String NETWORK = "org.bitcoin.production";
+    public String NETWORK = "org.bitcoin.test";
 
     public String CURRENCIES_TABLE = "currencies";
     public String USERS_TABLE = "users";
@@ -56,7 +57,7 @@ public class Config {
     public String[] EMAIL_RECIPTS = new String[]{
             "purchases@yachtmafia.mailclark.ai",
             "yachtmafia01@gmail.com"};
-    public String EMAIL_SENDER = "yachtmafia01@gmail.com";
+    public String ADMIN_EMAIL = "yachtmafia01@gmail.com";
 //    public String EMAIL_USERNAME = "yachtmafia01@gmail.com";
     public String EMAIL_PASSWORD = "Watersports2017";
 
