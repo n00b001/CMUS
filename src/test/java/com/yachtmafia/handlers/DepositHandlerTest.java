@@ -5,6 +5,8 @@ import com.yachtmafia.config.Config;
 import com.yachtmafia.db.DBWrapperMock;
 import com.yachtmafia.exchange.ExchangeMock;
 import com.yachtmafia.walletwrapper.WalletWrapper;
+import com.yachtmafia.walletwrapper.Web3jMock;
+import com.yachtmafia.walletwrapper.Web3jServiceMock;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.bitcoinj.kits.WalletAppKit;
 import org.bitcoinj.params.MainNetParams;
@@ -33,7 +35,7 @@ public class DepositHandlerTest {
 
         handlerDAO = new HandlerDAO(
                 new DBWrapperMock(MainNetParams.get()), new BankMock(),
-                new ExchangeMock(), new WalletWrapper(walletAppKit, web3j),
+                new ExchangeMock(), new WalletWrapper(walletAppKit, new Web3jMock(new Web3jServiceMock(true))),
                 new Config(), walletAppKit.params());
 
         ExecutorService handlerPool = Executors.newFixedThreadPool(3);

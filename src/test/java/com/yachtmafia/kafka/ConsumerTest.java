@@ -31,7 +31,7 @@ public class ConsumerTest {
 
 
         consumer = new Consumer(props, null);
-        consumer.subscribe(Arrays.asList("my-topic"));
+        consumer.subscribe("my-topic");
 //        consumer.run();
 
         Thread thread = new Thread(consumer);

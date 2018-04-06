@@ -155,10 +155,12 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
         Address address = Address.fromBase58(network, publicAddress);
 //        AddressBalance addressBalance = new AddressBalance(address);
 
-        Wallet wallet = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit().wallet();
+//        Wallet wallet = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit().wallet();
         try {
+            Wallet wallet = new Wallet(handlerDAO.getNetwork());
             Coin balance = wallet.getBalance();
             boolean success = wallet.addWatchedAddress(address);
+
             if (!success){
                 logger.error("Could not add address");
                 throw new RuntimeException("Could not add address");
@@ -172,10 +174,8 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
                 balance = wallet.getBalance();
             }
             logger.info("Exchange done for value: " + balance.getValue() + " satoshi");
-            wallet.removeWatchedAddress(address);
             return String.valueOf(balance.getValue());
         } catch (IllegalStateException ex) {
-            wallet.removeWatchedAddress(address);
             logger.error("Caught: ", ex);
             WalletAppKit walletAppKit = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit();
             if (!walletAppKit.isRunning()) {

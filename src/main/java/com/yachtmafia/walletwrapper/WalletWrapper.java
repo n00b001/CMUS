@@ -44,11 +44,11 @@ public class WalletWrapper {
                                           String depositAddress, String amountOfCoin,
                                           NetworkParameters network) {
 
-        Wallet wallet = bitcoinWalletAppKit.wallet();
         try {
             /**
              * todo: test
              */
+            Wallet wallet = new Wallet(bitcoinWalletAppKit.params());
             for (ECKey key : keys) {
                 boolean success = wallet.importKey(key);
                 if (!success){
@@ -83,15 +83,9 @@ public class WalletWrapper {
             // thread when finished. Or we could just assume the network accepts the transaction and carry on.
             Transaction transaction = future.get();
             logger.info("Transactions " + transaction);
-            for (ECKey key : keys) {
-                wallet.removeKey(key);
-            }
             return true;
         } catch (Exception e) {
             logger.error("Caught: ", e);
-            for (ECKey key : keys) {
-                wallet.removeKey(key);
-            }
             return false;
         }
     }

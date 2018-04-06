@@ -10,7 +10,10 @@ import org.bitcoinj.wallet.Wallet;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.web3j.protocol.Web3j;
+import org.web3j.protocol.http.HttpService;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import static com.yachtmafia.util.Util.getUnitsPerCoin;
@@ -21,6 +24,7 @@ import static com.yachtmafia.util.Util.getUnitsPerCoin;
 public class WalletWrapperTest {
     WalletWrapper walletWrapper;
     WalletAppKit walletAppKit = new WalletAppKitMock();
+    Web3j web3j = new Web3jMock(new Web3jServiceMock(true));
 
     public WalletWrapperTest() throws BlockStoreException {
     }
@@ -68,9 +72,13 @@ public class WalletWrapperTest {
         CryptoKeyPair depositAddress = CryptoKeyPairGenerator.parse("BTC", params);
 
         String privateKey = btc.getPrivateKey();
+        ECKey ecKey = ECKey.fromPrivate(privateKey.getBytes());
+        List<ECKey> list = new ArrayList<>();
+        list.add(ecKey);
+
         String despositAddress = depositAddress.getPublicAddress();
         String amountOfCoin = getUnitsPerCoin("BTC").toPlainString();
-        boolean success = walletWrapper.sendBitcoinTransaction(privateKey, publicAddress,
+        boolean success = walletWrapper.sendBitcoinTransaction(list,
                 despositAddress, amountOfCoin, params);
         assert success;
     }

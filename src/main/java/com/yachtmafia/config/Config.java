@@ -57,7 +57,8 @@ public class Config {
     public String[] EMAIL_RECIPTS = new String[]{
             "purchases@yachtmafia.mailclark.ai",
             "yachtmafia01@gmail.com"};
-    public String ADMIN_EMAIL = "yachtmafia01@gmail.com";
+    public String ADMIN_EMAIL = "team@cryptosave.co.uk";
+    public String ADMIN_EMAIL_LOGIN = "yachtmafia01@gmail.com";
 //    public String EMAIL_USERNAME = "yachtmafia01@gmail.com";
     public String EMAIL_PASSWORD = "Watersports2017";
 

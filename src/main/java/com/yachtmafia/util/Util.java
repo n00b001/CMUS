@@ -75,7 +75,7 @@ private static final Logger logger = LogManager.getLogger(Util.class);
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(
-                                config.ADMIN_EMAIL,
+                                config.ADMIN_EMAIL_LOGIN,
                                 config.EMAIL_PASSWORD);
                     }
                 });
