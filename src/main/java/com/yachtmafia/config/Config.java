@@ -26,6 +26,7 @@ public class Config {
     public int AMOUNT_OF_HANDLER_THREADS = 30;
 //    public String NETWORK = "org.bitcoin.production";
     public String NETWORK = "org.bitcoin.test";
+    public int BLOCK_DEPTH = 100000;
 
     public String CURRENCIES_TABLE = "currencies";
     public String USERS_TABLE = "users";

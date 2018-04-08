@@ -7,14 +7,18 @@ import com.yachtmafia.util.StatusLookup;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.bitcoinj.core.Address;
-import org.bitcoinj.core.Coin;
-import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.*;
+import org.bitcoinj.crypto.DeterministicHierarchy;
 import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.wallet.Wallet;
+import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
+import org.bitcoinj.net.discovery.DnsDiscovery;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.List;
+import java.util.ArrayList;
 
 import static com.yachtmafia.util.Const.DEPOSIT_TOPIC_NAME;
 import static com.yachtmafia.util.Util.sendEmail;
@@ -64,7 +68,6 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
                         addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_ADD_WALLET);
                         return false;
                     }
-                    String publicAddress = keyPair.getPublicAddress();
 
                     addTransactionStatus(swapMessage, StatusLookup.WALLET_CREATED);
 //            boolean success = handlerDAO.getBank().transferFromBankToExchange(swapMessage.getFromCoinName(),
@@ -81,7 +84,7 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
 //            }
 
                     String subject = "User Has made purchase: " + swapMessage.getID();
-                    String bodyMessage = "Address: " + publicAddress
+                    String bodyMessage = "Address: " + keyPair.getPublicAddress()
                             + "\n\nCoin from: " + swapMessage.getFromCoinName()
                             + "\nAmount: " + swapMessage.getAmountOfCoin()
                             + "\n\nCoin to: " + swapMessage.getToCoinName() + "\n"
@@ -96,7 +99,7 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
                     }
 
                     addTransactionStatus(swapMessage, StatusLookup.SUBMITTING_TO_EXCHANGE);
-                    String purchasedAmount = waitForFunds(publicAddress);
+                    String purchasedAmount = waitForFunds(keyPair.getPublicAddress());
                     addTransactionStatus(swapMessage, StatusLookup.VERIFYING_EXCHANGE);
 
 //            success = handlerDAO.getExchange().withdrawCrypto(
@@ -151,36 +154,68 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
     }
 
     private String waitForFunds(String publicAddress) throws InterruptedException {
-        NetworkParameters network = handlerDAO.getNetwork();
-        Address address = Address.fromBase58(network, publicAddress);
+//        privateKey = "n1UZRBRgJyFMxp6QcyyWpqvqK514K1iXzc";//todo:testing
+//        NetworkParameters network = handlerDAO.getNetwork();
+//        Address address = Address.fromBase58(network, privateKey);
+//        ECKey ecKey = ECKey.fromPrivate(privateKey.getBytes());
+        Wallet wallet = new Wallet(handlerDAO.getNetwork());
+        Address publicAddr = Address.fromBase58(handlerDAO.getNetwork(), publicAddress);
+        wallet.addWatchedAddress(publicAddr);
 //        AddressBalance addressBalance = new AddressBalance(address);
 
 //        Wallet wallet = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit().wallet();
-        try {
-            Wallet wallet = new Wallet(handlerDAO.getNetwork());
-            Coin balance = wallet.getBalance();
-            boolean success = wallet.addWatchedAddress(address);
 
-            if (!success){
-                logger.error("Could not add address");
-                throw new RuntimeException("Could not add address");
-            }
+//        List<ECKey> list = new ArrayList<>();
+//        list.add(ecKey);
+//        Wallet wallet = Wallet.fromKeys(handlerDAO.getNetwork(), list);
+//        Wallet.
+
+//        Wallet wallet = Wallet.fromWatchingKeyB58(handlerDAO.getNetwork(), publicAddress,
+//                DeterministicHierarchy.BIP32_STANDARDISATION_TIME_SECS);
+
+//        Wallet wallet = new Wallet(handlerDAO.getNetwork());
+//        PeerGroup peerGroup = new PeerGroup(handlerDAO.getNetwork(), handlerDAO.getChain());
+//        peerGroup.addPeerDiscovery(new DnsDiscovery(handlerDAO.getNetwork()));
+//        peerGroup.setMaxConnections(peerGroup.getMaxConnections());
+        handlerDAO.getChain().addWallet(wallet);
+        handlerDAO.getPeerGroup().addWallet(wallet);
+//        handlerDAO.getPeerGroup().downloadBlockChain();
+//        peerGroup.start();
+//        peerGroup.downloadBlockChain();
+
+        try {
+//            boolean success = wallet.importKey(ecKey);
+//            if (!success){
+//                logger.error("Could not add address");
+//                throw new RuntimeException("Could not add address");
+//            }
+
+//            Coin balance = wallet.getBalance();
+            final Coin[] balance = new Coin[1];
+            wallet.addCoinsReceivedEventListener((wallet1, tx, prevBalance, newBalance) -> {
+                balance[0] = newBalance.minus(prevBalance);
+            });
 
 //        Wallet wallet = Wallet.fromWatchingKeyB58(MainNetParams.get(), publicAddress, 0);
 //        Coin balance = wallet.getBalance();
             logger.info("Waiting for exchange...");
-            while (balance.isZero()) {
+            while (balance[0] == null || balance[0].isZero()) {
                 Thread.sleep(1000);
-                balance = wallet.getBalance();
+//                wallet.reset();
+//                balance[0] = wallet.getBalance();
             }
-            logger.info("Exchange done for value: " + balance.getValue() + " satoshi");
-            return String.valueOf(balance.getValue());
+            logger.info("Exchange done for value: " + balance[0].getValue() + " satoshi");
+            handlerDAO.getChain().removeWallet(wallet);
+            handlerDAO.getPeerGroup().removeWallet(wallet);
+            return String.valueOf(balance[0].getValue());
         } catch (IllegalStateException ex) {
             logger.error("Caught: ", ex);
-            WalletAppKit walletAppKit = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit();
-            if (!walletAppKit.isRunning()) {
-                throw new RuntimeException("Wallet is not running!");
-            }
+//            WalletAppKit walletAppKit = handlerDAO.getWalletWrapper().getBitcoinWalletAppKit();
+//            if (!walletAppKit.isRunning()) {
+//                throw new RuntimeException("Wallet is not running!");
+//            }
+            handlerDAO.getChain().removeWallet(wallet);
+            handlerDAO.getPeerGroup().removeWallet(wallet);
             throw new RuntimeException(ex);
         }
 

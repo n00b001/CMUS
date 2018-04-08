@@ -1,5 +1,6 @@
 package com.yachtmafia.handlers;
 
+import com.yachtmafia.WalletAppKitMock;
 import com.yachtmafia.bank.BankMock;
 import com.yachtmafia.config.Config;
 import com.yachtmafia.db.DBWrapperMock;
@@ -15,6 +16,6 @@ class HandlerDAOMock extends HandlerDAO {
     HandlerDAOMock() throws BlockStoreException {
         super(new DBWrapperMock(UnitTestParams.get()), new BankMock(), new ExchangeMock(),
                 new WalletWrapperMock(), new Config(),
-                UnitTestParams.get());
+                UnitTestParams.get(), new WalletAppKitMock().peerGroup(), new WalletAppKitMock().chain());
     }
 }

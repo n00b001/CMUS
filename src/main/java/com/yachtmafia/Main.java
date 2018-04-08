@@ -15,12 +15,15 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.bitcoinj.core.ECKey;
-import org.bitcoinj.core.NetworkParameters;
+import org.bitcoinj.core.*;
 import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.net.discovery.DnsDiscovery;
+import org.bitcoinj.store.BlockStore;
+import org.bitcoinj.store.BlockStoreException;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import java.util.Scanner;
+import org.bitcoinj.store.SPVBlockStore;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -49,8 +52,11 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private WalletWrapper walletWrapper;
     private NetworkParameters network;
     private Thread inputThread;
+//    private Thread peerGroupThread;
+    private AbstractBlockChain chain;
+    private PeerGroup peerGroup;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws BlockStoreException {
         LoggerContext context = (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
         File file = new File("src/main/resources/log4j.xml");
 
@@ -61,19 +67,37 @@ public class Main implements Thread.UncaughtExceptionHandler{
         main.run();
     }
 
-    private void run(){
+    private void run() throws BlockStoreException {
+        setupAll();
+//        startProducer();
+        startAllThreads();
+        waitForThreadsToFinish();
+    }
+
+    private void setupAll() throws BlockStoreException {
+        setupUnhandledExceptions();
         setupUserInput();
         setupConfig();
         setupNetwork();
         setupDBWrapper();
         setupBank();
         setupExchange();
+        setupChain();
+        setupPeerGroup();
         setupWalletWrapper();
+        setupHandlerDao();
         setupConsumers();
-        setupUnhandledExceptions();
-//        startProducer();
-        startAllThreads();
-        waitForThreadsToFinish();
+    }
+
+    private void setupPeerGroup() {
+        peerGroup = new PeerGroup(network, chain);
+        peerGroup.addPeerDiscovery(new DnsDiscovery(network));
+//        peerGroupThread = new Thread(() -> peerGroup.downloadBlockChain());
+    }
+
+    private void setupHandlerDao() {
+        handlerDAO = new HandlerDAO(dbWrapper, bank, exchange, walletWrapper,
+                config, network, peerGroup, chain);
     }
 
     private void setupUserInput() {
@@ -94,6 +118,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
                         logger.info("Unknown input: " + input);
                 }
             }
+            logger.info("Shutting down input handler...");
         });
     }
 
@@ -127,6 +152,11 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private void setupDBWrapper() {
         dbWrapper = new DBWrapperImpl(config);
     }
+    private void setupChain() throws BlockStoreException {
+        BlockStore blockstore = new SPVBlockStore(network,
+                new File("blockstore" + network.getId()));
+        chain = new BlockChain(network, blockstore);
+    }
 
     private void setupUnhandledExceptions() {
         for (Thread t : threads){
@@ -137,13 +167,16 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private void startAllThreads() {
         logger.info("Starting all threads...");
         inputThread.start();
-        walletWrapper.getBitcoinWalletAppKit().setAutoSave(true);
-        walletWrapper.startAsync();
-        walletWrapper.getBitcoinWalletAppKit().awaitRunning();
-        List<ECKey> importedKeys = walletWrapper.getBitcoinWalletAppKit().wallet().getImportedKeys();
-        for (ECKey key : importedKeys) {
-            walletWrapper.getBitcoinWalletAppKit().wallet().removeKey(key);
-        }
+//        peerGroupThread.start();
+        peerGroup.start();
+        peerGroup.downloadBlockChain();
+//        walletWrapper.getBitcoinWalletAppKit().setAutoSave(true);
+//        walletWrapper.startAsync();
+//        walletWrapper.getBitcoinWalletAppKit().awaitRunning();
+//        List<ECKey> importedKeys = walletWrapper.getBitcoinWalletAppKit().wallet().getImportedKeys();
+//        for (ECKey key : importedKeys) {
+//            walletWrapper.getBitcoinWalletAppKit().wallet().removeKey(key);
+//        }
 //        walletWrapper.getBitcoinWalletAppKit().peerGroup().startAsync();
         for (Thread t : threads){
             t.start();
@@ -193,11 +226,13 @@ public class Main implements Thread.UncaughtExceptionHandler{
             logger.error("caught: ", ex);
             Thread.currentThread().interrupt();
         }
-        walletWrapper.getBitcoinWalletAppKit().wallet().shutdownAutosaveAndWait();
+//        walletWrapper.getBitcoinWalletAppKit().wallet().shutdownAutosaveAndWait();
         logger.info("Shutting down...");
 
+        peerGroup.stop();
 
         inputThread.interrupt();
+//        peerGroupThread.interrupt();
         try {
             inputThread.join(100);
         } catch (InterruptedException e) {
@@ -216,12 +251,11 @@ public class Main implements Thread.UncaughtExceptionHandler{
                 Thread.currentThread().interrupt();
             }
         }
+
+        System.exit(1);
     }
 
     private void setupConsumers() {
-        handlerDAO = new HandlerDAO(dbWrapper, bank, exchange, walletWrapper,
-                config, network);
-
         List<MessageHandler> depositListers = new ArrayList<>();
         ExecutorService handlerPool = Executors.newFixedThreadPool(config.AMOUNT_OF_HANDLER_THREADS);
         depositListers.add(new DepositHandler(handlerDAO, handlerPool));

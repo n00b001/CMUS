@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.web3j.protocol.Web3j;
-import org.web3j.protocol.http.HttpService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -79,7 +78,7 @@ public class WalletWrapperTest {
         String despositAddress = depositAddress.getPublicAddress();
         String amountOfCoin = getUnitsPerCoin("BTC").toPlainString();
         boolean success = walletWrapper.sendBitcoinTransaction(list,
-                despositAddress, amountOfCoin, params);
+                despositAddress, amountOfCoin, params, walletAppKit.peerGroup(), walletAppKit.chain());
         assert success;
     }
 

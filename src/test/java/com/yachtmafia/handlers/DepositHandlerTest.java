@@ -9,6 +9,7 @@ import com.yachtmafia.walletwrapper.Web3jMock;
 import com.yachtmafia.walletwrapper.Web3jServiceMock;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.bitcoinj.kits.WalletAppKit;
+import org.bitcoinj.params.AbstractBitcoinNetParams;
 import org.bitcoinj.params.MainNetParams;
 import org.bitcoinj.store.BlockStoreException;
 import org.junit.Before;
@@ -28,15 +29,19 @@ public class DepositHandlerTest {
 
     @Before
     public void setup() throws BlockStoreException {
-        WalletAppKit walletAppKit = new WalletAppKit(MainNetParams.get(),
+        AbstractBitcoinNetParams params = MainNetParams.get();
+
+        WalletAppKit walletAppKit = new WalletAppKit(params,
                 new File("wallet"), "deposit-test");
         walletAppKit.startAsync();
         walletAppKit.awaitRunning();
 
+        PeerGroupMock peerGroup = new PeerGroupMock(params);
         handlerDAO = new HandlerDAO(
-                new DBWrapperMock(MainNetParams.get()), new BankMock(),
-                new ExchangeMock(), new WalletWrapper(walletAppKit, new Web3jMock(new Web3jServiceMock(true))),
-                new Config(), walletAppKit.params());
+                new DBWrapperMock(params), new BankMock(),
+                new ExchangeMock(), new WalletWrapper(walletAppKit,
+                new Web3jMock(new Web3jServiceMock(true))),
+                new Config(), walletAppKit.params(), peerGroup, walletAppKit.chain());
 
         ExecutorService handlerPool = Executors.newFixedThreadPool(3);
         messageHandler = new DepositHandler(handlerDAO, handlerPool);

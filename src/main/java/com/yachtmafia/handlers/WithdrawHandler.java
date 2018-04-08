@@ -89,7 +89,8 @@ private static final Logger logger = LogManager.getLogger(WithdrawHandler.class)
             }
 
             boolean success = handlerDAO.getWalletWrapper().sendBitcoinTransaction(keys,
-                    depositAddresses.get(0), swapMessage.getAmountOfCoin(), handlerDAO.getNetwork());
+                    depositAddresses.get(0), swapMessage.getAmountOfCoin(), handlerDAO.getNetwork(),
+                    handlerDAO.getPeerGroup(), handlerDAO.getChain());
             if (!success) {
                 logger.error("Error handling wallet to exchange transaction for: " + swapMessage.toString());
                 addTransactionStatus(swapMessage, StatusLookup.WALLET_TO_EXCHANGE_TRANSACTION_FAILURE);
