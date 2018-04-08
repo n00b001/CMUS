@@ -24,6 +24,7 @@ import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
 import java.util.Scanner;
 import org.bitcoinj.store.SPVBlockStore;
+import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -168,6 +169,13 @@ public class Main implements Thread.UncaughtExceptionHandler{
         logger.info("Starting all threads...");
         inputThread.start();
 //        peerGroupThread.start();
+        List<ECKey> list = new ArrayList<>();
+        ECKey key = new ECKey();
+        key.setCreationTimeSeconds(0);
+        list.add(key);
+        Wallet wallet = Wallet.fromKeys(network, list);
+        peerGroup.addWallet(wallet);
+        chain.addWallet(wallet);
         peerGroup.start();
         peerGroup.downloadBlockChain();
 //        walletWrapper.getBitcoinWalletAppKit().setAutoSave(true);

@@ -42,17 +42,34 @@ public class WalletWrapper {
                                           String depositAddress, String amountOfCoin,
                                           NetworkParameters network, PeerGroup peerGroup, AbstractBlockChain chain) {
 
-        Wallet wallet = new Wallet(network);
-        for (ECKey key : keys) {
-            boolean success = wallet.importKey(key);
-            if (!success){
-                logger.error("Failed to import key!");
-                return false;
-            }
-        }
+        Wallet wallet = Wallet.fromKeys(network, keys);
+//        Wallet wallet = new Wallet(network);
+//        for (ECKey key : keys) {
+//            boolean success = wallet.importKey(key);
+//            if (!success){
+//                logger.error("Failed to import key!");
+//                return false;
+//            }
+//        }
         peerGroup.addWallet(wallet);
         chain.addWallet(wallet);
-        peerGroup.downloadBlockChain();
+
+        if(wallet.getLastBlockSeenHeight() == 0){
+            wallet.reset();
+            peerGroup.stop();
+            peerGroup.start();
+            peerGroup.downloadBlockChain();
+        }
+
+        while(!Thread.currentThread().isInterrupted() &&
+                wallet.getLastBlockSeenHeight() == -1){
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                logger.warn("Caught: ", e);
+                Thread.currentThread().interrupt();
+            }
+        }
         try {
             /**
              * todo: test
@@ -67,10 +84,13 @@ public class WalletWrapper {
 
 //            wallet.
 
-            Long satoshis = Long.valueOf(amountOfCoin);
+            Long satoshis = Long.valueOf(1000);
+//            Long satoshis = Long.valueOf(amountOfCoin);
             final Coin value = Coin.valueOf(satoshis);
             if (wallet.getBalance().isLessThan(value)){
                 logger.error("Not enough balance my dude");
+                chain.removeWallet(wallet);
+                peerGroup.removeWallet(wallet);
                 return false;
             }
 
@@ -95,13 +115,11 @@ public class WalletWrapper {
 //            logger.info("Transactions " + transaction);
             chain.removeWallet(wallet);
             peerGroup.removeWallet(wallet);
-            peerGroup.stop();
             return true;
         } catch (Exception e) {
             logger.error("Caught: ", e);
             chain.removeWallet(wallet);
             peerGroup.removeWallet(wallet);
-            peerGroup.stop();
             return false;
         }
     }

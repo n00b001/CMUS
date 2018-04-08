@@ -62,7 +62,8 @@ private static final Logger logger = LogManager.getLogger(WithdrawHandler.class)
 //                addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_FIND_WALLET);
 //                return true;
 //            }
-            List<ECKey> keys = handlerDAO.getDbWrapper().getKeys(swapMessage.getUsername(), swapMessage.getFromCoinName());
+            List<ECKey> keys = handlerDAO.getDbWrapper().getKeys(swapMessage.getUsername(),
+                    swapMessage.getFromCoinName());
             addTransactionStatus(swapMessage, StatusLookup.WALLET_FOUND);
 
 //            String privateKey = handlerDAO.getDbWrapper().getPrivateKey(swapMessage.getUsername(),
@@ -76,7 +77,8 @@ private static final Logger logger = LogManager.getLogger(WithdrawHandler.class)
             addTransactionStatus(swapMessage, StatusLookup.PRIVATE_KEY_FOUND);
 
 //            String depositAddress = handlerDAO.getExchange().getDepositAddress(swapMessage.getFromCoinName());
-            List<String> depositAddresses = handlerDAO.getDbWrapper().getPublicAddress(handlerDAO.getConfig().ADMIN_EMAIL,
+            List<String> depositAddresses = handlerDAO.getDbWrapper().getPublicAddress(
+                    handlerDAO.getConfig().ADMIN_EMAIL,
                     swapMessage.getFromCoinName());
             if (depositAddresses.isEmpty()){
                 logger.error("No admin deposit address found!");

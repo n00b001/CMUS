@@ -7,6 +7,8 @@ import com.yachtmafia.util.StatusLookup;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bitcoinj.core.ECKey;
+import org.bitcoinj.core.DumpedPrivateKey;
+import org.bitcoinj.core.NetworkParameters;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -362,8 +364,9 @@ public class DBWrapperImpl implements DBWrapper {
         List<ECKey> list = new ArrayList<>();
         List<String> privateKey = getPrivateKey(user, coin);
         for (String s : privateKey) {
-            ECKey ecKey = ECKey.fromPrivate(s.getBytes());
-            list.add(ecKey);
+            ECKey key = DumpedPrivateKey.fromBase58(NetworkParameters.fromID(config.NETWORK), s).getKey();
+//            ECKey ecKey = ECKey.fromPrivate(s.getBytes());
+            list.add(key);
         }
         return list;
     }
