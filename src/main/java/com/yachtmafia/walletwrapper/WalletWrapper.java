@@ -56,9 +56,6 @@ public class WalletWrapper {
 
         if(wallet.getLastBlockSeenHeight() == 0){
             wallet.reset();
-            peerGroup.stop();
-            peerGroup.start();
-            peerGroup.downloadBlockChain();
         }
 
         while(!Thread.currentThread().isInterrupted() &&
