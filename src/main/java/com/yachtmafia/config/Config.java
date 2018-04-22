@@ -20,7 +20,7 @@ public class Config {
     public static String DATABASE_HOSTNAME = "eu-cdbr-west-02.cleardb.net";
     public static String DATABASE_CONNECTIONSTRING = "jdbc:mysql://" + DATABASE_HOSTNAME + ":" + DATABASE_PORT + "/" + DATABASE_NAME;
     public static String DATABASE_USERNAME = "baeba0d22e4ce6";
-    public static String DATABASE_PASSWORD = "46492c38";
+    public static String DATABASE_PASSWORD = "";
 
     public static int AMOUNT_OF_HANDLER_THREADS = 30;
 
@@ -55,10 +55,10 @@ public class Config {
 
     public static String ADMIN_EMAIL = "team@cryptosave.co.uk";
     public static String ADMIN_EMAIL_LOGIN = "yachtmafia01@gmail.com";
-    public static String EMAIL_PASSWORD = "Watersports2017";
+    public static String EMAIL_PASSWORD = "";
 
     public static String CLIENT_ID_PAYPAL = "AbTewYvrX2Ts8bDNai80TeybnI8G9qKoPsUQoZN8Qs0fMvZZJsgCRBeRyIduGsuYLZ-sbgj47ZNeNFeV";
-    public static String CLIENT_SECRET_PAYPAL = "EBT3S1kHYZVH6Um_VlIfRRTEKTc86WzUniKvac770EL6J1T2ig77X2VrLWpfx4tBBBNwkQoCGXFhpjcK";
+    public static String CLIENT_SECRET_PAYPAL = "";
 
     public static String KAFKA_ADDRESS = "35.197.203.197:9092";
 
