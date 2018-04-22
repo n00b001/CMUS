@@ -37,10 +37,14 @@ private static final Logger logger = LogManager.getLogger(SwapHandler.class);
 
     @Override
     public Boolean call() throws Exception {
-        if (TOPIC_NAME.equals(message.topic())){
-            SwapMessage swapMessage = new SwapMessage(message.value());
-            logger.info("Swapmessage: " + swapMessage);
-            throw new NotImplementedException();
+        try {
+            if (TOPIC_NAME.equals(message.topic())) {
+                SwapMessage swapMessage = new SwapMessage(message.value());
+                logger.info("Swapmessage: " + swapMessage);
+                throw new NotImplementedException();
+            }
+        }catch (Exception e){
+            logger.error("Caught: ", e);
         }
         return false;
     }

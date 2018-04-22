@@ -23,7 +23,7 @@ public class DBWrapperImplTest {
     @Before
     public void setUp() throws Exception {
         Config config = new Config();
-        dbWrapper = new DBWrapperImpl(config);
+        dbWrapper = new DBWrapperImpl();
     }
 
     @Test

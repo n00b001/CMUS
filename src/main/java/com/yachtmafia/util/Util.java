@@ -1,12 +1,18 @@
 package com.yachtmafia.util;
 
 import com.yachtmafia.config.Config;
+import org.apache.http.client.ResponseHandler;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicResponseHandler;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Properties;
@@ -25,6 +31,18 @@ private static final Logger logger = LogManager.getLogger(Util.class);
     private Util() {
     }
 
+    public static float getConversionRate(String from, String to) throws IOException {
+        HttpClientBuilder builder = HttpClientBuilder.create();
+        try (CloseableHttpClient httpclient = builder.build())
+        {
+            HttpGet httpGet = new HttpGet("http://quote.yahoo.com/d/quotes.csv?s=" + from + to + "=X&f=l1&e=.csv");
+            ResponseHandler<String> responseHandler = new BasicResponseHandler();
+            String responseBody = httpclient.execute(httpGet, responseHandler);
+
+            return Float.parseFloat(responseBody);
+        }
+    }
+
     public static BigDecimal getCoinDoubleValue(String amount, String currencySymbol) {
         return getCoinDoubleValue(amount, currencySymbol, PRECISION);
     }
@@ -34,7 +52,7 @@ private static final Logger logger = LogManager.getLogger(Util.class);
 
         BigDecimal amountBigInt = BigDecimal.valueOf(Long.parseLong(amount));
         RoundingMode roundingMode = RoundingMode.FLOOR;
-        return amountBigInt.divide(unitsPerCoin, PRECISION, roundingMode);
+        return amountBigInt.divide(unitsPerCoin, precision, roundingMode);
     }
 
     public static BigDecimal getUnitsPerCoin(String currency) {
@@ -62,7 +80,7 @@ private static final Logger logger = LogManager.getLogger(Util.class);
     }
 
     public static boolean sendEmail(String message, String subject,
-                                    Config config, String[] recipients) {
+                                    String[] recipients) {
 
         Properties props = new Properties();
         props.put("mail.smtp.starttls.enable", "true");
@@ -75,8 +93,8 @@ private static final Logger logger = LogManager.getLogger(Util.class);
                     @Override
                     protected PasswordAuthentication getPasswordAuthentication() {
                         return new PasswordAuthentication(
-                                config.ADMIN_EMAIL_LOGIN,
-                                config.EMAIL_PASSWORD);
+                                Config.ADMIN_EMAIL_LOGIN,
+                                Config.EMAIL_PASSWORD);
                     }
                 });
 
@@ -84,7 +102,7 @@ private static final Logger logger = LogManager.getLogger(Util.class);
 
             for (String recipient : recipients) {
                 Message mailMessage = new MimeMessage(session);
-                mailMessage.setFrom(new InternetAddress(config.ADMIN_EMAIL));
+                mailMessage.setFrom(new InternetAddress(Config.ADMIN_EMAIL_LOGIN));
                 mailMessage.setRecipients(Message.RecipientType.TO,
                         InternetAddress.parse(recipient));
                 mailMessage.setSubject(subject);

@@ -19,10 +19,8 @@ public class BankImpl implements Bank {
 //    private final Logger LOG = Logger.getLogger(getClass().getSimpleName());
 
     private static final Logger logger = LogManager.getLogger(Bank.class);
-    private final Config config;
 
-    public BankImpl(Config config) {
-        this.config = config;
+    public BankImpl() {
     }
 
     @Override
@@ -40,14 +38,14 @@ public class BankImpl implements Bank {
         PayoutItem payoutItem = new PayoutItem();
         payoutItem.setAmount(paypalAmount);
         payoutItem.setNote("With love, from Cryptobox");
-        payoutItem.setRecipientType("EMAIL");
+        payoutItem.setRecipientType("USER_EMAIL");
         payoutItem.setReceiver(user);
 
         List<PayoutItem> items = new ArrayList<>();
         items.add(payoutItem);
 
         PayoutSenderBatchHeader batchHeader = new PayoutSenderBatchHeader();
-        batchHeader.setRecipientType("EMAIL");
+        batchHeader.setRecipientType("USER_EMAIL");
         batchHeader.setEmailSubject("You've got funds!");
 
         Payout payout = new Payout();
@@ -55,7 +53,7 @@ public class BankImpl implements Bank {
         payout.setSenderBatchHeader(batchHeader);
 
         try {
-            APIContext context = new APIContext(config.CLIENT_ID_PAYPAL, config.CLIENT_SECRET_PAYPAL,
+            APIContext context = new APIContext(Config.CLIENT_ID_PAYPAL, Config.CLIENT_SECRET_PAYPAL,
                     "sandbox");
 
             PayoutBatch payoutBatch = payout.create(context, null);

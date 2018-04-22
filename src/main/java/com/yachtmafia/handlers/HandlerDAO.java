@@ -17,18 +17,16 @@ public class HandlerDAO {
     private final Bank bank;
     private final Exchange exchange;
     private final WalletWrapper walletWrapper;
-    private final Config config;
     private final NetworkParameters network;
     private final PeerGroup peerGroup;
     private final AbstractBlockChain chain;
 
-    public HandlerDAO(DBWrapper dbWrapper, Bank bank, Exchange exchange, WalletWrapper walletWrapper, Config config,
+    public HandlerDAO(DBWrapper dbWrapper, Bank bank, Exchange exchange, WalletWrapper walletWrapper,
                       NetworkParameters network, PeerGroup peerGroup, AbstractBlockChain chain) {
         this.dbWrapper = dbWrapper;
         this.bank = bank;
         this.exchange = exchange;
         this.walletWrapper = walletWrapper;
-        this.config = config;
         this.network = network;
         this.peerGroup = peerGroup;
         this.chain = chain;
@@ -48,10 +46,6 @@ public class HandlerDAO {
 
     WalletWrapper getWalletWrapper() {
         return walletWrapper;
-    }
-
-    public Config getConfig() {
-        return config;
     }
 
     public NetworkParameters getNetwork() {

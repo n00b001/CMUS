@@ -5,8 +5,6 @@ import com.yachtmafia.bank.BankImpl;
 import com.yachtmafia.config.Config;
 import com.yachtmafia.db.DBWrapper;
 import com.yachtmafia.db.DBWrapperImpl;
-import com.yachtmafia.exchange.ExchangeCoinbase;
-import com.yachtmafia.exchange.ExchangeGdax;
 import com.yachtmafia.exchange.ExchangeWrapper;
 import com.yachtmafia.handlers.*;
 import com.yachtmafia.kafka.Consumer;
@@ -22,9 +20,11 @@ import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.store.BlockStoreException;
 import org.web3j.protocol.Web3j;
 import org.web3j.protocol.http.HttpService;
+
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.Scanner;
 import org.bitcoinj.store.SPVBlockStore;
-import org.bitcoinj.wallet.Wallet;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -49,7 +49,6 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private Bank bank;
     private ExchangeWrapper exchange;
     private HandlerDAO handlerDAO;
-    private Config config;
     private WalletWrapper walletWrapper;
     private NetworkParameters network;
     private Thread inputThread;
@@ -57,12 +56,21 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private AbstractBlockChain chain;
     private PeerGroup peerGroup;
 
-    public static void main(String[] args) throws BlockStoreException {
+    public static void main(String[] args) throws BlockStoreException, URISyntaxException {
         LoggerContext context = (org.apache.logging.log4j.core.LoggerContext) LogManager.getContext(false);
-        File file = new File("src/main/resources/log4j.xml");
-
-// this will force a reconfiguration
-        context.setConfigLocation(file.toURI());
+        URL log4jConfig = Config.class.getClassLoader().getResource("log4j.xml");
+        if(log4jConfig == null){
+            System.out.println("Couldn't find log4j config!");
+        }else {
+            context.setConfigLocation(log4jConfig.toURI());
+        }        
+        
+        URL logbackConfig = Config.class.getClassLoader().getResource("logback.xml");
+        if(logbackConfig == null){
+            System.out.println("Couldn't find logback config!");
+        }else {
+            System.setProperty("logback.configurationFile", logbackConfig.toURI().toString());
+        }
 
         Main main = new Main();
         main.run();
@@ -78,7 +86,6 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private void setupAll() throws BlockStoreException {
         setupUnhandledExceptions();
         setupUserInput();
-        setupConfig();
         setupNetwork();
         setupDBWrapper();
         setupBank();
@@ -98,7 +105,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
 
     private void setupHandlerDao() {
         handlerDAO = new HandlerDAO(dbWrapper, bank, exchange, walletWrapper,
-                config, network, peerGroup, chain);
+                network, peerGroup, chain);
     }
 
     private void setupUserInput() {
@@ -124,7 +131,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
     }
 
     private void setupNetwork() {
-        network = NetworkParameters.fromID(config.NETWORK);
+        network = NetworkParameters.fromID(Config.NETWORK);
     }
 
     private void setupWalletWrapper() {
@@ -136,22 +143,16 @@ public class Main implements Thread.UncaughtExceptionHandler{
         walletWrapper = new WalletWrapper(walletAppKit, web3j);
     }
 
-    private void setupConfig() {
-        this.config = new Config();
-    }
-
     private void setupExchange() {
-        exchange = new ExchangeWrapper(config);
-        exchange.addExchange(new ExchangeCoinbase(config));
-        exchange.addExchange(new ExchangeGdax(config));
+        exchange = new ExchangeWrapper();
     }
 
     private void setupBank() {
-        bank = new BankImpl(config);
+        bank = new BankImpl();
     }
 
     private void setupDBWrapper() {
-        dbWrapper = new DBWrapperImpl(config);
+        dbWrapper = new DBWrapperImpl();
     }
     private void setupChain() throws BlockStoreException {
         BlockStore blockstore = new SPVBlockStore(network,
@@ -166,18 +167,40 @@ public class Main implements Thread.UncaughtExceptionHandler{
     }
 
     private void startAllThreads() {
+//        ECKey key = DumpedPrivateKey.fromBase58(network,
+//                "cVvZB7MfbyKM5uATz6ae8PBC5w7trGaUeWSVLiqAH1Qf6mb72C22").getKey();
+//        key.setCreationTimeSeconds(0);
+//        List<ECKey> list = new ArrayList<>();
+//        list.add(key);
+//        Wallet wallet = new Wallet(network);
+//        wallet.importKey(key);
+//        Address publicAddr = Address.fromBase58(network,
+//                "mhFUS3xR4kn4W7S5Xrimo51XDHYR2oau2X");
+//        wallet.addWatchedAddress(publicAddr);
+//        chain.addWallet(wallet);
+//        peerGroup.addWallet(wallet);
+        peerGroup.setFastCatchupTimeSecs(0);
+
         logger.info("Starting all threads...");
         inputThread.start();
 //        peerGroupThread.start();
-        List<ECKey> list = new ArrayList<>();
-        ECKey key = new ECKey();
-        key.setCreationTimeSeconds(0);
-        list.add(key);
-        Wallet wallet = Wallet.fromKeys(network, list);
-        peerGroup.addWallet(wallet);
-        chain.addWallet(wallet);
         peerGroup.start();
         peerGroup.downloadBlockChain();
+
+//        wallet.reset();
+//        while(wallet.getLastBlockSeenHeight() == -1
+//                || wallet.getLastBlockSeenHeight() == 0){
+//            try {
+//                Thread.sleep(1000);
+//            } catch (InterruptedException e) {
+//
+//            }
+//        }
+//
+//        boolean something = true;
+//        while (something){
+//            logger.info("SOMETHING");
+//        }
 //        walletWrapper.getBitcoinWalletAppKit().setAutoSave(true);
 //        walletWrapper.startAsync();
 //        walletWrapper.getBitcoinWalletAppKit().awaitRunning();
@@ -265,15 +288,15 @@ public class Main implements Thread.UncaughtExceptionHandler{
 
     private void setupConsumers() {
         List<MessageHandler> depositListers = new ArrayList<>();
-        ExecutorService handlerPool = Executors.newFixedThreadPool(config.AMOUNT_OF_HANDLER_THREADS);
+        ExecutorService handlerPool = Executors.newFixedThreadPool(Config.AMOUNT_OF_HANDLER_THREADS);
         depositListers.add(new DepositHandler(handlerDAO, handlerPool));
 
         List<MessageHandler> withdrawListers = new ArrayList<>();
-        ExecutorService withdrawPool = Executors.newFixedThreadPool(config.AMOUNT_OF_HANDLER_THREADS);
+        ExecutorService withdrawPool = Executors.newFixedThreadPool(Config.AMOUNT_OF_HANDLER_THREADS);
         withdrawListers.add(new WithdrawHandler(handlerDAO, withdrawPool));
 
         List<MessageHandler> swapListers = new ArrayList<>();
-        ExecutorService swapPool = Executors.newFixedThreadPool(config.AMOUNT_OF_HANDLER_THREADS);
+        ExecutorService swapPool = Executors.newFixedThreadPool(Config.AMOUNT_OF_HANDLER_THREADS);
         swapListers.add(new SwapHandler(handlerDAO, swapPool));
 
 
@@ -289,7 +312,7 @@ public class Main implements Thread.UncaughtExceptionHandler{
     private Consumer configureConsumer(String topics, List<MessageHandler> listeners) {
         //consumer properties
         Properties props = new Properties();
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, config.KAFKA_ADDRESS);
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, Config.KAFKA_ADDRESS);
         // This is the ID of this consumer machine
         props.put(ConsumerConfig.GROUP_ID_CONFIG, "1");
 

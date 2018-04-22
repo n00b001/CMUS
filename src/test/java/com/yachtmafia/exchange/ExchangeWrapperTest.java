@@ -2,7 +2,6 @@ package com.yachtmafia.exchange;
 
 import com.yachtmafia.config.Config;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Set;
@@ -15,7 +14,7 @@ public class ExchangeWrapperTest {
     @Before
     public void setUp() throws Exception {
         Config config = new Config();
-        exchangeWrapper = new ExchangeWrapper(config);
+        exchangeWrapper = new ExchangeWrapper();
         exchangeWrapper.addExchange(new ExchangeMock());
     }
 

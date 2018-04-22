@@ -26,7 +26,7 @@ public class DBWrapperImpl implements DBWrapper {
 
     private Config config;
 
-    public DBWrapperImpl(Config config) {
+    public DBWrapperImpl() {
         try {
             Class.forName("com.mysql.jdbc.Driver");
         } catch (ClassNotFoundException e) {
@@ -88,8 +88,8 @@ public class DBWrapperImpl implements DBWrapper {
             String walletId;
 
             try (Connection con = DriverManager.getConnection(
-                    config.connectionString,
-                    config.username, config.password);
+                    config.DATABASE_CONNECTIONSTRING,
+                    config.DATABASE_USERNAME, config.DATABASE_PASSWORD);
                  Statement stmt = con.createStatement()
             ) {
                 int rs = stmt.executeUpdate(query, Statement.RETURN_GENERATED_KEYS);
@@ -188,8 +188,8 @@ public class DBWrapperImpl implements DBWrapper {
 
     private boolean modifyQuery(String query) {
         try (Connection con = DriverManager.getConnection(
-                config.connectionString,
-                config.username, config.password);
+                config.DATABASE_CONNECTIONSTRING,
+                config.DATABASE_USERNAME, config.DATABASE_PASSWORD);
              Statement stmt = con.createStatement()
         ) {
             stmt.executeUpdate(query);
@@ -226,7 +226,7 @@ public class DBWrapperImpl implements DBWrapper {
                         + " U ON P." + config.USER_ID + " = U." + config.ID + " " +
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C ON C." + config.ID + " = P." + config.TO_CURRENCY_ID + " " +
                         " WHERE " +
-                        "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
+                        "    U." + config.USER_EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
 //        String toFunds = getSingleQueryString(query);
         List<String> toFundsList = getSingleQueryString(query);
         if (toFundsList.isEmpty()){
@@ -251,7 +251,7 @@ public class DBWrapperImpl implements DBWrapper {
                         + " U ON P." + config.USER_ID + " = U." + config.ID + " " +
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C ON C." + config.ID + " = P." + config.FROM_CURRENCY_ID + " " +
                         " WHERE " +
-                        "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
+                        "    U." + config.USER_EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
 //        String fromFunds = getSingleQueryString(query);
         toFundsList = getSingleQueryString(query);
         if (toFundsList.isEmpty()){
@@ -285,7 +285,7 @@ public class DBWrapperImpl implements DBWrapper {
                         "    INNER JOIN " + config.USERS_TABLE + " U ON W." + config.USER_ID + " = U." + config.ID + " " +
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C ON C." + config.ID + " = '" + coin + "'" +
                         " WHERE " +
-                        "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
+                        "    U." + config.USER_EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
         return getSingleQueryString(query);
     }
 
@@ -355,7 +355,7 @@ public class DBWrapperImpl implements DBWrapper {
 
     private List<String> getUserId(String user) {
         String query = "SELECT " + config.ID + " FROM " + config.USERS_TABLE + " WHERE "
-                + config.EMAIL + " = '" + user + "'";
+                + config.USER_EMAIL + " = '" + user + "'";
         return getSingleQueryString(query);
     }
 
@@ -382,14 +382,14 @@ public class DBWrapperImpl implements DBWrapper {
                         "    INNER JOIN " + config.CURRENCIES_TABLE + " C " +
                         " ON C." + config.ID + " = W." + config.CURRENCY_ID + " " +
                         " WHERE " +
-                        "    U." + config.EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
+                        "    U." + config.USER_EMAIL + " = '" + user + "' AND C." + config.ID + " = '" + coin + "'";
         return getSingleQueryString(query);
     }
 
     private List<String> getSingleQueryString(String query) {
         try (Connection con = DriverManager.getConnection(
-                config.connectionString,
-                config.username, config.password);
+                config.DATABASE_CONNECTIONSTRING,
+                config.DATABASE_USERNAME, config.DATABASE_PASSWORD);
              Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(query)
         ) {
@@ -406,8 +406,8 @@ public class DBWrapperImpl implements DBWrapper {
 
     private List<List<String>> getMultiQueryString(String query, int columns) {
         try (Connection con = DriverManager.getConnection(
-                config.connectionString,
-                config.username, config.password);
+                config.DATABASE_CONNECTIONSTRING,
+                config.DATABASE_USERNAME, config.DATABASE_PASSWORD);
              Statement stmt = con.createStatement();
              ResultSet rs = stmt.executeQuery(query)
         ) {

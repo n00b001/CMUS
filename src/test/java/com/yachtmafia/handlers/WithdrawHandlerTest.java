@@ -3,6 +3,7 @@ package com.yachtmafia.handlers;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.bitcoinj.store.BlockStoreException;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.List;
@@ -22,7 +23,7 @@ public class WithdrawHandlerTest {
         messageHandler = new WithdrawHandler(handlerDAO, handlerPool);
     }
 
-    @Test
+    @Test @Ignore
     public void processMessage() throws ExecutionException, InterruptedException {
         List<ConsumerRecord<String, String>> records = getWithdrawMessages(100);
 

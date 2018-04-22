@@ -1,5 +1,6 @@
 package com.yachtmafia.handlers;
 
+import com.yachtmafia.config.Config;
 import com.yachtmafia.cryptoKeyPairs.CryptoKeyPair;
 import com.yachtmafia.cryptoKeyPairs.CryptoKeyPairGenerator;
 import com.yachtmafia.messages.SwapMessage;
@@ -8,19 +9,13 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bitcoinj.core.*;
-import org.bitcoinj.crypto.DeterministicHierarchy;
-import org.bitcoinj.kits.WalletAppKit;
-import org.bitcoinj.store.BlockStore;
 import org.bitcoinj.wallet.Wallet;
-import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener;
-import org.bitcoinj.net.discovery.DnsDiscovery;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.List;
-import java.util.ArrayList;
 
 import static com.yachtmafia.util.Const.DEPOSIT_TOPIC_NAME;
+import static com.yachtmafia.util.Util.getCoinDoubleValue;
 import static com.yachtmafia.util.Util.sendEmail;
 
 public class DepositHandler implements MessageHandler {
@@ -48,12 +43,13 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
     }
 
     @Override
-    public Boolean call() throws Exception {
-        if (TOPIC_NAME.equals(message.topic())) {
-            SwapMessage swapMessage = new SwapMessage(message.value());
-            addTransactionStatus(swapMessage, StatusLookup.REQUEST_RECEIVED_BY_SERVER);
-            boolean success;
-            logger.info("swapmessage: " + swapMessage.toString());
+    public Boolean call() {
+        try {
+            if (TOPIC_NAME.equals(message.topic())) {
+                SwapMessage swapMessage = new SwapMessage(message.value());
+                addTransactionStatus(swapMessage, StatusLookup.REQUEST_RECEIVED_BY_SERVER);
+                boolean success;
+                logger.info("swapmessage: " + swapMessage.toString());
 //            String publicAddress = handlerDAO.getDbWrapper().getPublicAddress(swapMessage.getUsername(),
 //                    swapMessage.getToCoinName());
 //            if (publicAddress == null){
@@ -86,13 +82,13 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
                     String subject = "User Has made purchase: " + swapMessage.getID();
                     String bodyMessage = "Address: " + keyPair.getPublicAddress()
                             + "\n\nCoin from: " + swapMessage.getFromCoinName()
-                            + "\nAmount: " + swapMessage.getAmountOfCoin()
+                            + "\nAmount: " + getCoinDoubleValue(swapMessage.getAmountOfCoin(), swapMessage.getFromCoinName())
                             + "\n\nCoin to: " + swapMessage.getToCoinName() + "\n"
                             + "\n\n\nFull message: \n" + swapMessage.toString();
 
                     success = sendEmail(bodyMessage, subject,
-                            handlerDAO.getConfig(), handlerDAO.getConfig().EMAIL_RECIPTS);
-                    if (!success){
+                            Config.EMAIL_RECIPTS);
+                    if (!success) {
                         logger.error("Did not email! " + message);
                         addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_SEND_EMAIL);
                         return false;
@@ -110,7 +106,7 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
 //            }
                     addTransactionStatus(swapMessage, StatusLookup.ADDING_TO_WALLET);
                     success = handlerDAO.getDbWrapper().addTransaction(swapMessage, purchasedAmount);
-                    if (!success){
+                    if (!success) {
                         logger.error("Did not add portfolio balance " + message);
 
                         addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_ADD_PORTFOLIO_BALANCE);
@@ -123,24 +119,27 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
                     Coin coin = Coin.valueOf(Long.valueOf(purchasedAmount));
 
                     subject = "Money successfully deposited";
-                    bodyMessage = "Your deposit of " + swapMessage.getAmountOfCoin()
+                    bodyMessage = "Your deposit of " + getCoinDoubleValue(swapMessage.getAmountOfCoin(), swapMessage.getFromCoinName())
                             + swapMessage.getFromCoinName() + " is safely added into your account as "
                             + coin.toFriendlyString() + "!";
 
                     success = sendEmail(bodyMessage, subject,
-                            handlerDAO.getConfig(), new String[]{swapMessage.getUsername()});
-                    if (!success){
+                            new String[]{swapMessage.getUsername()});
+                    if (!success) {
                         logger.error("Did not email! " + message);
                         addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_SEND_EMAIL);
                         return false;
                     }
                     return true;
-                }catch (Exception e){
+                } catch (Exception e) {
                     logger.error("Did not add wallet successfully! " + message, e);
                     addTransactionStatus(swapMessage, StatusLookup.COULD_NOT_ADD_WALLET);
                     return false;
                 }
 //            }
+            }
+        }catch (Exception e){
+            logger.error("Caught: ", e);
         }
         return false;
     }
@@ -204,6 +203,7 @@ private static final Logger logger = LogManager.getLogger(DepositHandler.class);
 //                wallet.reset();
 //                balance[0] = wallet.getBalance();
             }
+
             logger.info("Exchange done for value: " + balance[0].getValue() + " satoshi");
             handlerDAO.getChain().removeWallet(wallet);
             handlerDAO.getPeerGroup().removeWallet(wallet);

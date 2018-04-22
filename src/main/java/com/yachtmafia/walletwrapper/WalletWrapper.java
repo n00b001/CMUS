@@ -43,6 +43,7 @@ public class WalletWrapper {
                                           NetworkParameters network, PeerGroup peerGroup, AbstractBlockChain chain) {
 
         Wallet wallet = Wallet.fromKeys(network, keys);
+        wallet.reset();
 //        Wallet wallet = new Wallet(network);
 //        for (ECKey key : keys) {
 //            boolean success = wallet.importKey(key);
@@ -51,12 +52,18 @@ public class WalletWrapper {
 //                return false;
 //            }
 //        }
+
+//        peerGroup = new PeerGroup(network, chain);
+
         peerGroup.addWallet(wallet);
         chain.addWallet(wallet);
 
-        if(wallet.getLastBlockSeenHeight() == 0){
-            wallet.reset();
-        }
+//        if(wallet.getLastBlockSeenHeight() == 0){
+//        }
+
+//        peerGroup.stop();
+        peerGroup.start();
+        peerGroup.downloadBlockChain();
 
         while(!Thread.currentThread().isInterrupted() &&
                 wallet.getLastBlockSeenHeight() == -1){
@@ -81,7 +88,7 @@ public class WalletWrapper {
 
 //            wallet.
 
-            Long satoshis = Long.valueOf(1000);
+            Long satoshis = Long.valueOf(amountOfCoin);
 //            Long satoshis = Long.valueOf(amountOfCoin);
             final Coin value = Coin.valueOf(satoshis);
             if (wallet.getBalance().isLessThan(value)){

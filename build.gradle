@@ -1,21 +1,11 @@
-group 'cmus'
-version '1.0-SNAPSHOT'
-
-apply plugin: 'java'
-apply plugin: 'gradle-one-jar'
-
-// gdax
-apply plugin: 'application'
-apply plugin: 'spring-boot'
-
-sourceCompatibility = 1.8
 
 buildscript {
     repositories {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+//        classpath 'com.github.rholder:gradle-one-jar:1.0.4'
+//        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.1'
     }
 
     //gdax
@@ -30,13 +20,31 @@ buildscript {
     }
 }
 
-sourceSets {
-    main {
-        resources {
-            exclude '*coinbase*'
-        }
-    }
+plugins {
+    id "com.github.johnrengelman.shadow" version "2.0.3"
+    id 'org.hidetake.ssh' version '2.9.0'
 }
+
+group 'cmus'
+version '1.0-SNAPSHOT'
+
+// gdax
+//apply plugin: 'application'
+//apply plugin: 'spring-boot'
+
+//apply plugin: 'gradle-one-jar'
+
+apply plugin: 'java'
+
+
+
+//sourceSets {
+//    main {
+//        resources {
+//            exclude '*coinbase*'
+//        }
+//    }
+//}
 
 repositories {
     mavenCentral()
@@ -75,30 +83,72 @@ dependencies {
     // https://mvnrepository.com/artifact/javax.mail/mail
     compile group: 'javax.mail', name: 'mail', version: '1.4.1'
 
+    compile 'com.lucadev:coinmarketcap-api:1.2'
+    // https://mvnrepository.com/artifact/org.apache.httpcomponents/httpclient
+    compile group: 'org.apache.httpcomponents', name: 'httpclient', version: '4.5'
 
-    // gdax
-    compile 'junit:junit:4.12'
-    compile 'com.google.code.gson:gson:2.8.0'
-    compile 'com.fasterxml.jackson.core:jackson-core:2.8.6'
-    compile 'com.fasterxml.jackson.core:jackson-databind:2.8.6'
-    compile 'com.fasterxml.jackson.core:jackson-annotations:2.8.6'
-    compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.6'
-    compile 'org.springframework.boot:spring-boot-starter-web:1.5.4.RELEASE'
-    compile 'org.springframework:spring-context:4.3.4.RELEASE'
-    compile 'joda-time:joda-time:2.9.7'
+//    compile 'com.github.mmazi:rescu:1.9.0'
 
-    testCompile 'org.springframework:spring-test:4.3.5.RELEASE'
-    testCompile 'org.springframework.boot:spring-boot-test:1.5.4.RELEASE'
-
-
+//    // gdax
+//    compile 'junit:junit:4.12'
+//    compile 'com.google.code.gson:gson:2.8.0'
+//    compile 'com.fasterxml.jackson.core:jackson-core:2.8.6'
+//    compile 'com.fasterxml.jackson.core:jackson-databind:2.8.6'
+//    compile 'com.fasterxml.jackson.core:jackson-annotations:2.8.6'
+//    compile 'com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.8.6'
+//    compile 'org.springframework.boot:spring-boot-starter-web:1.5.4.RELEASE'
+//    compile 'org.springframework:spring-context:4.3.4.RELEASE'
+//    compile 'joda-time:joda-time:2.9.7'
+//
+//    testCompile 'org.springframework:spring-test:4.3.5.RELEASE'
+//    testCompile 'org.springframework.boot:spring-boot-test:1.5.4.RELEASE'
 }
 
-task buildFatJar(type: OneJar) {
-    mainClass = 'com.yachtmafia.Main'
-    mergeManifestFromJar = true
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.yachtmafia.Main'
+    }
 }
 
-artifacts {
-    archives buildFatJar
+shadowJar {
+    baseName = 'cmus'
+//    include '*.jar'
+//    include '*.properties'
+//    include '*.xml'
+//    include '*.yml'
+    classifier = null
+    version = null
 }
+
+ssh.settings {
+    knownHosts = allowAnyHosts
+    fileTransfer = 'scp'
+}
+
+remotes {
+    webServer {
+        host = '35.189.123.254'
+        user = 'xfant'
+        identity = file('C:\\Users\\xfant\\.ssh\\id_rsa')
+    }
+}
+
+task deploy(dependsOn: shadowJar) << {
+    ssh.run {
+        session(remotes.webServer) {
+            execute 'sudo rm -rf /home/xfant/cmus.jar'
+            put from: "build/libs/cmus.jar", into: '/home/xfant/cmus.jar'
+        }
+    }
+}
+
+//
+//task buildFatJar(type: OneJar) {
+//    mainClass = 'com.yachtmafia.Main'
+//    mergeManifestFromJar = true
+//}
+
+//artifacts {
+//    archives buildFatJar
+//}
 

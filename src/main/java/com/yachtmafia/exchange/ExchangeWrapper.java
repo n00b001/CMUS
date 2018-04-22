@@ -1,22 +1,17 @@
 package com.yachtmafia.exchange;
 
 import com.yachtmafia.config.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.util.HashSet;
 import java.util.OptionalLong;
 import java.util.Set;
 
 public class ExchangeWrapper implements Exchange {
-    private final Config config;
     private Set<Exchange> exchanges = new HashSet<>();
 //    private final Logger LOG = Logger.getLogger(getClass().getSimpleName());
 
 
-    public ExchangeWrapper(Config config) {
-        this.config = config;
+    public ExchangeWrapper() {
     }
 
     public void addExchange(Exchange e){
@@ -101,10 +96,5 @@ public class ExchangeWrapper implements Exchange {
             returnVal = String.valueOf(max.getAsLong());
         }
         return returnVal;
-    }
-
-
-    public Config getConfig() {
-        return config;
     }
 }

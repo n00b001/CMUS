@@ -1,7 +1,6 @@
 package com.yachtmafia.handlers;
 
 import com.yachtmafia.bank.BankMock;
-import com.yachtmafia.config.Config;
 import com.yachtmafia.db.DBWrapperMock;
 import com.yachtmafia.exchange.ExchangeMock;
 import com.yachtmafia.walletwrapper.WalletWrapper;
@@ -41,7 +40,7 @@ public class DepositHandlerTest {
                 new DBWrapperMock(params), new BankMock(),
                 new ExchangeMock(), new WalletWrapper(walletAppKit,
                 new Web3jMock(new Web3jServiceMock(true))),
-                new Config(), walletAppKit.params(), peerGroup, walletAppKit.chain());
+                walletAppKit.params(), peerGroup, walletAppKit.chain());
 
         ExecutorService handlerPool = Executors.newFixedThreadPool(3);
         messageHandler = new DepositHandler(handlerDAO, handlerPool);

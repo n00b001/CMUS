@@ -49,13 +49,18 @@ public class SwapMessage {
 
     @Override
     public String toString() {
-        return "SwapMessage{" +
-                "amountOfCoin='" + amountOfCoin + '\'' +
-                ", fromCurrencyName='" + fromCurrencyName + '\'' +
-                ", toCurrencyName='" + toCurrencyName + '\'' +
-                ", username='" + username + '\'' +
-                ", id='" + id + '\'' +
-                '}';
+        try {
+            return toJson();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return "SwapMessage{" +
+                    "amountOfCoin='" + amountOfCoin + '\'' +
+                    ", fromCurrencyName='" + fromCurrencyName + '\'' +
+                    ", toCurrencyName='" + toCurrencyName + '\'' +
+                    ", username='" + username + '\'' +
+                    ", id='" + id + '\'' +
+                    '}';
+        }
     }
 
     public String toJson() throws JsonProcessingException {

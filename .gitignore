@@ -9,3 +9,9 @@ classes
 \.wallet
 
 \.spvchain
+
+blockstoreorg\.bitcoin\.test
+
+wallet/deposit-test\.spvchain
+
+wallet/
