@@ -15,3 +15,5 @@ blockstoreorg\.bitcoin\.test
 wallet/deposit-test\.spvchain
 
 wallet/
+
+config\.properties
